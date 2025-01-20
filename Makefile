@@ -1,5 +1,8 @@
 install:
 	pip install -r requirements.txt
 
-download:
-	python download.py
+fetch:
+	python 1_fetch.py
+
+process:
+	python 2_process.py

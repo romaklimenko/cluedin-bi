@@ -6,6 +6,7 @@ cluedin==2.6.0
 comm==0.2.2
 debugpy==1.8.12
 decorator==5.1.1
+deltalake==0.24.0
 executing==2.1.0
 idna==3.10
 ipykernel==6.29.5
