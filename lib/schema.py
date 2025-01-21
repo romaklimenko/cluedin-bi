@@ -9,6 +9,9 @@ def ensure_fact(
     source_df: pd.DataFrame,
     target_parquet_path: str,
 ) -> None:
+    if 'Key' in source_df.columns:
+        source_df = source_df[['Key'] +
+                              [col for col in source_df.columns if col != 'Key']]
     source_df.to_parquet(
         target_parquet_path,
         index=False,
@@ -21,7 +24,7 @@ def ensure_dim_entity_type(fact_entities_df, path_to_table):
     dim_df.columns = ['Key']
     dim_df['EntityType'] = dim_df['Key'].replace(
         '/', ' ', regex=True).str.strip()
-    save_dim_df(dim_df, path_to_table)
+    merge_dim_df(dim_df, path_to_table)
 
 
 def ensure_dim_tags(fact_entities_df, path_to_table):
@@ -32,7 +35,7 @@ def ensure_dim_tags(fact_entities_df, path_to_table):
         .query('tags != ""')
     tags_df.columns = ['Key']
     tags_df['Tag'] = tags_df['Key'].replace('T:', '', regex=True)
-    save_dim_df(tags_df, path_to_table)
+    merge_dim_df(tags_df, path_to_table)
 
 
 def ensure_dim_date(pass_to_table):
@@ -47,10 +50,18 @@ def ensure_dim_date(pass_to_table):
         'Month': date_range.strftime('%Y-%m'),
         'Year': date_range.strftime('%Y')
     })
-    save_dim_df(dim_df, pass_to_table)
+    merge_dim_df(dim_df, pass_to_table)
 
 
-def save_dim_df(dim_df, path_to_table):
+def ensure_dim_metric(fact_data_quality_df, path_to_table):
+    dim_df = fact_data_quality_df['Metric_Key'].to_frame().drop_duplicates()
+    dim_df.columns = ['Key']
+    dim_df['Metric'] = dim_df['Key'] \
+        .str.replace('\\.', ' ', regex=True).str.title()
+    merge_dim_df(dim_df, path_to_table)
+
+
+def merge_dim_df(dim_df, path_to_table):
     if os.path.exists(path_to_table):
         existing_df = pd.read_parquet(path_to_table)
         dim_df = pd \
@@ -63,25 +74,18 @@ def save_dim_df(dim_df, path_to_table):
         compression='snappy')
 
 
-def ensure_dim(
-    fact_df: pd.DataFrame,
-    dim_path: str,
-    columns: list[str],
-) -> None:
-    """
-    Create Dim table from Fact table.
-    """
+def append_fact(fact_df, path_to_table):
+    if 'Key' in fact_df.columns:
+        fact_df = fact_df[
+            ['Key'] + [col for col in fact_df.columns if col != 'Key']]
 
-    dim_df = fact_df[columns].drop_duplicates()
-    dim_df.columns = ['Key'] + columns[1:]
+    if os.path.exists(path_to_table):
+        existing_df = pd.read_parquet(path_to_table)
+        fact_df = pd.concat([existing_df, fact_df]).drop_duplicates(
+            subset='Key', keep='last')
 
-    if os.path.exists(dim_path):
-        existing_df = pd.read_parquet(dim_path)
-        dim_df = pd.concat([existing_df, dim_df])
-        # drop duplicates
-        dim_df = dim_df.drop_duplicates()
-
-    dim_df.to_parquet(
-        dim_path,
+    fact_df.to_parquet(
+        path_to_table,
         index=False,
-        compression='snappy')
+        compression='snappy'
+    )

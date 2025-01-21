@@ -2,7 +2,7 @@ install:
 	pip install -r requirements.txt
 
 fetch:
-	python 1_fetch.py
+	python main.py fetch
 
 process:
-	python 2_process.py
+	python main.py process
