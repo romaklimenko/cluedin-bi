@@ -57,6 +57,9 @@ erDiagram
         string user_lastName
     }
     Fact_Entities }o--|| Entities_Tags : id
+    Fact_Entities }o--|| Dim_Date : discoveryDate
+    Fact_Entities }o--|| Dim_Date : createdDate
+    Fact_Entities }o--|| Dim_Date : modifiedDate
     
     Entities_Tags {
         string Key PK
