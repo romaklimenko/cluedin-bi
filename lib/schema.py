@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 
-def ensure_fact(
+def overwrite(
     source_df: pd.DataFrame,
     target_parquet_path: str,
 ) -> None:
@@ -19,15 +19,15 @@ def ensure_fact(
     )
 
 
-def ensure_dim_entity_type(fact_entities_df, path_to_table):
+def merge_dim_entity_type(fact_entities_df, path_to_table):
     dim_df = fact_entities_df['entityType'].to_frame().drop_duplicates()
     dim_df.columns = ['Key']
     dim_df['EntityType'] = dim_df['Key'].replace(
         '/', ' ', regex=True).str.strip()
-    merge_dim_df(dim_df, path_to_table)
+    merge_dim(dim_df, path_to_table)
 
 
-def ensure_dim_tags(fact_entities_df, path_to_table):
+def merge_dim_tags(fact_entities_df, path_to_table):
     tags_df = fact_entities_df \
         .explode('tags')['tags'] \
         .to_frame() \
@@ -35,10 +35,10 @@ def ensure_dim_tags(fact_entities_df, path_to_table):
         .query('tags != ""')
     tags_df.columns = ['Key']
     tags_df['Tag'] = tags_df['Key'].replace('T:', '', regex=True)
-    merge_dim_df(tags_df, path_to_table)
+    merge_dim(tags_df, path_to_table)
 
 
-def ensure_dim_date(pass_to_table):
+def merge_dim_date(pass_to_table):
     current_year = pd.Timestamp.now().year
 
     date_range = pd.date_range(
@@ -50,18 +50,18 @@ def ensure_dim_date(pass_to_table):
         'Month': date_range.strftime('%Y-%m'),
         'Year': date_range.strftime('%Y')
     })
-    merge_dim_df(dim_df, pass_to_table)
+    merge_dim(dim_df, pass_to_table)
 
 
-def ensure_dim_metric(fact_data_quality_df, path_to_table):
+def merge_dim_metric(fact_data_quality_df, path_to_table):
     dim_df = fact_data_quality_df['Metric_Key'].to_frame().drop_duplicates()
     dim_df.columns = ['Key']
     dim_df['Metric'] = dim_df['Key'] \
         .str.replace('\\.', ' ', regex=True).str.title()
-    merge_dim_df(dim_df, path_to_table)
+    merge_dim(dim_df, path_to_table)
 
 
-def merge_dim_df(dim_df, path_to_table):
+def merge_dim(dim_df, path_to_table):
     if os.path.exists(path_to_table):
         existing_df = pd.read_parquet(path_to_table)
         dim_df = pd \
